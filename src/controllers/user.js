@@ -1,4 +1,6 @@
 const User = require('../models/user');
+const {v4: uuidv4} = require('uuid');
+const {getUser, setUser} = require('../services/auth');
 
 async function userSignup(req, res) {
     try {
@@ -31,9 +33,17 @@ async function getUsers(req, res) {
 async function userLogin(req, res) {
     try {
         const {email, password} = req.body;
-        const getUser = await User.findOne({email, password});
-        if(!getUser) res.status(404).send("User does not exist. Pls sign up!");
-        else res.status(200).send("User login successful");
+        const user = await User.findOne({email, password});
+        if(!user) res.status(404).send("User does not exist. Pls sign up!");
+        else {
+            const sessionId = uuidv4();
+            setUser(sessionId, user);
+            res.cookie("uid", sessionId, {
+                httpOnly: true,
+                secure: false
+            });
+            res.status(200).send("User login successful");
+        }
     }
     catch(err) {
         res.status(400).send("User login failed. Pls try again!");
